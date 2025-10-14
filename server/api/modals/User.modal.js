@@ -26,6 +26,10 @@ const userSchema = mongoose.Schema({
   loan: {
     type: Number,
     default: 0,
+  },
+  walletAddress: {
+    type: String,
+    default: "",
   }
 });
 

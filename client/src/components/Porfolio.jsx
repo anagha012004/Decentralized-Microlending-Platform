@@ -7,9 +7,26 @@ import { Link } from 'react-router-dom';
 import img from '../assets/profile.jpg';
 
 const Portfolio = () => {
-    const { user } = useContext(NFTContext);
+    const { user: contextUser } = useContext(NFTContext);
+    const [localUser, setLocalUser] = useState(null);
     const [nfts, setNfts] = useState([]);
     const [investments, setInvestments] = useState([]);
+
+    // Use context user or local user
+    const user = contextUser || localUser;
+
+    const getUser = async () => {
+        try {
+            const res = await axios.get(`${URL}/user`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            setLocalUser(res.data.data.user[0]);
+        } catch (err) {
+            console.log(err);
+        }
+    };
 
     const getNfts = () => {
         axios.get(`${URL}/nft/getnfts`, {
@@ -41,6 +58,7 @@ const Portfolio = () => {
     };
 
     useEffect(() => {
+        getUser();
         getInvestments();
         getNfts();
     }, []);
@@ -53,8 +71,8 @@ const Portfolio = () => {
                     <h1 className="max-w-2xl mb-4 text-4xl font-extrabold tracking-tight leading-none md:text-5xl xl:text-6xl dark:text-dark" style={{ fontFamily: "Roboto Mono" }}>
                         Portfolio For:
                     </h1>
-                    <h2 className="max-w-2xl mb-4 text-2xl font-extrabold tracking-tight leading-none md:text-5xl xl:text-3xl dark:text-dark" style={{ fontFamily: "Roboto Mono" }}>Name: {user?.userName || "Name"}</h2>
-                    <h2 className="max-w-2xl mb-4 text-2xl font-extrabold tracking-tight leading-none md:text-5xl xl:text-3xl dark:text-dark" style={{ fontFamily: "Roboto Mono" }}>Email: {user?.email || "Email"}</h2>
+                    <h2 className="max-w-2xl mb-4 text-2xl font-extrabold tracking-tight leading-none md:text-5xl xl:text-3xl dark:text-dark" style={{ fontFamily: "Roboto Mono" }}>Name: {user?.userName || user?.fullName || "Loading..."}</h2>
+                    <h2 className="max-w-2xl mb-4 text-2xl font-extrabold tracking-tight leading-none md:text-5xl xl:text-3xl dark:text-dark" style={{ fontFamily: "Roboto Mono" }}>Email: {user?.email || "Loading..."}</h2>
                 </div>
                 <div className="w-full max-w-md p-4 bg-white border border-gray-200 rounded-lg shadow sm:p-8 dark:bg-white dark:border-gray-700" style={{ marginLeft: "150px" }}>
                     <div className="flex items-center justify-between mb-4">

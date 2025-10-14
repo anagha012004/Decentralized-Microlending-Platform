@@ -30,27 +30,81 @@ export const NFTProvider = ({ children }) => {
           console.log(err);
          }
     }
+
+    const updateWalletAddress = async (address) => {
+        try {
+            const res = await axios.put(`${URL}/user/wallet`, { walletAddress: address }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                }
+            });
+            if (res.status === 200) {
+                getUser(); // Refresh user data
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    };
     const checkIfWalletIsConnected = async () => {
         if (!ethereum) return toast.error("Please install MetaMask");
         const accounts = await ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length) {
+        if (accounts.length && user && user.walletAddress) {
+            // Only auto-connect if user exists and has a wallet address stored
             setConnectedAccount(accounts[0]);
         }
     };
 
-    const connectWallet = () => {
+    const connectWallet = async () => {
         if (!ethereum) return toast.error("Please install MetaMask");
-        ethereum.request({ method: 'eth_requestAccounts' })
-            .then(accounts => {
-                setConnectedAccount(accounts[0]);
-            })
-            .catch(err => toast.error(err.message));
+
+        try {
+            // Switch to localhost network
+            try {
+                await ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x7A69' }], // 31337 in hex
+                });
+            } catch (switchError) {
+                // If network doesn't exist, add it
+                if (switchError.code === 4902) {
+                    await ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x7A69',
+                            chainName: 'Localhost 8545',
+                            rpcUrls: ['http://127.0.0.1:8545'],
+                            nativeCurrency: {
+                                name: 'ETH',
+                                symbol: 'ETH',
+                                decimals: 18,
+                            },
+                        }],
+                    });
+                } else {
+                    throw switchError;
+                }
+            }
+
+            const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+            setConnectedAccount(accounts[0]);
+            if (user) {
+                await updateWalletAddress(accounts[0]);
+            }
+        } catch (err) {
+            toast.error(err.message);
+        }
     };
 
     useEffect(() => {
         checkIfWalletIsConnected();
         getUser();
     }, []);
+
+    useEffect(() => {
+        if (connectedAccount && user && user.walletAddress !== connectedAccount) {
+            updateWalletAddress(connectedAccount);
+        }
+    }, [connectedAccount, user]);
 
     return (
         <NFTContext.Provider value={{ connectWallet, connectedAccount ,user}}>

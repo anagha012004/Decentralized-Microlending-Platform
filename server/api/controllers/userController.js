@@ -230,3 +230,29 @@ export const getinvestments = async (req, res) => {
         })
     }
 }
+
+export const updateWalletAddress = async (req, res) => {
+    try {
+        const { walletAddress } = req.body;
+        const userId = req.user.id;
+        const user = await User.findOne({ _id: userId });
+        if (user) {
+            user.walletAddress = walletAddress;
+            await user.save();
+            return res.status(200).json({
+                status: 'success',
+                message: 'Wallet address updated successfully'
+            });
+        } else {
+            return res.status(404).json({
+                status: 'false',
+                message: 'User not found'
+            });
+        }
+    } catch (err) {
+        return res.status(400).json({
+            status: 'false',
+            message: err.message
+        });
+    }
+}
